@@ -1,0 +1,27 @@
+/* Premium Button Animations */
+@keyframes premium-shimmer {
+  0% { background-position: -100%; }
+  100% { background-position: 200%; }
+}
+.animate-premium-shimmer {
+  background: linear-gradient(90deg, #fff 25%, #ffe29e 50%, #ff9800 75%, #fff 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: premium-shimmer 2.2s linear infinite;
+}
+@keyframes premium-flicker {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+.animate-premium-flicker {
+  animation: premium-flicker 1.3s infinite alternate;
+}
+/* For full button pulse effect */
+.get-premium-animated {
+  animation: premium-glow 1.8s infinite alternate;
+}
+@keyframes premium-glow {
+  0% { filter: drop-shadow(0 0 8px #FFD580); }
+  100% { filter: drop-shadow(0 0 16px #FFB300); }
+}

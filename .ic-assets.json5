@@ -1,0 +1,16 @@
+// Configuration for asset canister deployment
+// Ensures the domain verification file is uploaded at the correct path
+{
+  rules: [
+    {
+      // Include our domain verification file from the assets directory
+      globs: ["assets/.well-known/ic-domains"],
+      path: "/.well-known/ic-domains",
+      contentType: "text/plain",
+      headers: {
+        // Avoid caching while verifying
+        "Cache-Control": "no-store"
+      }
+    }
+  ]
+}

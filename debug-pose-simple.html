@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pose Detection Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        #logs { background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Pose Detection Debug Tool</h1>
+    
+    <div id="status" class="status info">Ready to test...</div>
+    
+    <div>
+        <button class="btn-primary" onclick="testMediaPipeConfig()">Test MediaPipe Config</button>
+        <button class="btn-primary" onclick="testMediaPipeLoading()">Test MediaPipe Loading</button>
+        <button class="btn-success" onclick="testPoseDetectionInit()">Test Pose Detection Init</button>
+        <button class="btn-danger" onclick="clearLogs()">Clear Logs</button>
+    </div>
+    
+    <h3>Debug Logs:</h3>
+    <div id="logs"></div>
+
+    <!-- Load MediaPipe config -->
+    <script src="/mediapipe-config.js"></script>
+    
+    <!-- Load MediaPipe conditionally -->
+    <script>
+        let logContainer = document.getElementById('logs');
+        let statusContainer = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logEntry.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#856404' : '#0c5460';
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusContainer.textContent = message;
+            statusContainer.className = `status ${type}`;
+        }
+        
+        function clearLogs() {
+            logContainer.innerHTML = '';
+        }
+        
+        function testMediaPipeConfig() {
+            log('🔧 Testing MediaPipe Configuration...');
+            
+            if (window.MediaPipeConfig) {
+                log('✅ MediaPipeConfig found', 'success');
+                log(`Backend: ${window.MediaPipeConfig.POSE_BACKEND}`);
+                log(`Pose Model URL: ${window.MediaPipeConfig.POSE_MODEL_URL}`);
+                updateStatus('MediaPipe config loaded successfully', 'success');
+            } else {
+                log('❌ MediaPipeConfig not found', 'error');
+                updateStatus('MediaPipe config failed to load', 'error');
+            }
+        }
+        
+        function testMediaPipeLoading() {
+            log('📦 Testing MediaPipe Script Loading...');
+            
+            if (window.MediaPipeConfig && window.MediaPipeConfig.POSE_BACKEND === 'mediapipe') {
+                log('Loading MediaPipe Pose script...');
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js';
+                
+                script.onload = function() {
+                    log('✅ MediaPipe script loaded successfully', 'success');
+                    log(`Pose available: ${!!window.Pose}`);
+                    log(`Camera available: ${!!window.Camera}`);
+                    log(`drawConnectors available: ${!!window.drawConnectors}`);
+                    log(`drawLandmarks available: ${!!window.drawLandmarks}`);
+                    updateStatus('MediaPipe script loaded successfully', 'success');
+                };
+                
+                script.onerror = function() {
+                    log('❌ Failed to load MediaPipe script', 'error');
+                    updateStatus('Failed to load MediaPipe script', 'error');
+                };
+                
+                document.head.appendChild(script);
+            } else {
+                log('⚠️ MediaPipe backend not configured', 'warning');
+                updateStatus('MediaPipe backend not configured', 'warning');
+            }
+        }
+        
+        async function testPoseDetectionInit() {
+            log('🚀 Testing Pose Detection Initialization...');
+            updateStatus('Testing pose detection...', 'info');
+            
+            try {
+                // Wait for MediaPipe to be available
+                let attempts = 0;
+                while (!window.Pose && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    attempts++;
+                    if (attempts % 10 === 0) {
+                        log(`Waiting for MediaPipe... (${attempts * 200}ms)`);
+                    }
+                }
+                
+                if (!window.Pose) {
+                    log('❌ MediaPipe Pose not available after waiting', 'error');
+                    updateStatus('MediaPipe Pose not available', 'error');
+                    return;
+                }
+                
+                log('✅ MediaPipe Pose found', 'success');
+                
+                // Try to create a Pose instance
+                const pose = new window.Pose({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+                });
+                
+                log('✅ Pose instance created successfully', 'success');
+                
+                // Configure the pose
+                pose.setOptions({
+                    modelComplexity: 0,
+                    smoothLandmarks: false,
+                    enableSegmentation: false,
+                    smoothSegmentation: false,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.5
+                });
+                
+                log('✅ Pose configured successfully', 'success');
+                
+                // Set up results callback
+                pose.onResults((results) => {
+                    log(`📊 Pose results received: ${results.poseLandmarks ? results.poseLandmarks.length : 0} landmarks`);
+                });
+                
+                log('✅ Pose detection initialized successfully!', 'success');
+                updateStatus('Pose detection working correctly!', 'success');
+                
+            } catch (error) {
+                log(`❌ Pose detection initialization failed: ${error.message}`, 'error');
+                log(`Error stack: ${error.stack}`, 'error');
+                updateStatus('Pose detection initialization failed', 'error');
+            }
+        }
+        
+        // Auto-run tests on page load
+        window.onload = function() {
+            setTimeout(() => {
+                testMediaPipeConfig();
+                setTimeout(() => {
+                    testMediaPipeLoading();
+                    setTimeout(() => {
+                        testPoseDetectionInit();
+                    }, 2000);
+                }, 1000);
+            }, 500);
+        };
+    </script>
+</body>
+</html>

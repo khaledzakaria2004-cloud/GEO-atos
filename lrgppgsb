@@ -1,0 +1,823 @@
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import Icon from '../../../components/AppIcon';
+import { db, getOrCreateUserByEmail } from '../../../utils/db';
+
+const AchievementsTab = ({ user }) => {
+  const badgesFromStorage = JSON.parse(localStorage.getItem('fitcoach_badges') || '[]');
+  const [dynamic, setDynamic] = useState([]);
+  
+  // Achievement configuration factory - makes it easy to add new achievements
+  const ACHIEVEMENT_CONFIGS = useMemo(() => ({
+    'pushups': {
+      name: 'Push-Up Achievement',
+      exerciseName: 'push-ups',
+      storageKey: 'pushup_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 50 },
+        { level: 2, goal: 100 },
+        { level: 3, goal: 250 },
+        { level: 4, goal: 500 },
+        { level: 5, goal: 1000 },
+      ],
+      alt: 'Push-Ups Exercise'
+    },
+    'wide_pushups': {
+      name: 'Wide Push-Up Achievement',
+      exerciseName: 'wide push ups',
+      storageKey: 'wide_pushup_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 50 },
+        { level: 2, goal: 100 },
+        { level: 3, goal: 250 },
+        { level: 4, goal: 500 },
+        { level: 5, goal: 1000 },
+      ],
+      alt: 'Wide Push-Ups Exercise'
+    },
+    'narrow_pushups': {
+      name: 'Narrow Push-Up Achievement',
+      exerciseName: 'narrow push ups',
+      storageKey: 'narrow_pushup_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 50 },
+        { level: 2, goal: 100 },
+        { level: 3, goal: 250 },
+        { level: 4, goal: 500 },
+        { level: 5, goal: 1000 },
+      ],
+      alt: 'Narrow Push-Ups Exercise'
+    },
+    'diamond_pushups': {
+      name: 'Diamond Push-Up Achievement',
+      exerciseName: 'diamond push ups',
+      storageKey: 'diamond_pushup_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 38 },
+        { level: 2, goal: 75 },
+        { level: 3, goal: 188 },
+        { level: 4, goal: 375 },
+        { level: 5, goal: 750 },
+      ],
+      alt: 'Diamond Push-Ups Exercise'
+    },
+    'knee_pushups': {
+      name: 'Knee Push-Up Achievement',
+      exerciseName: 'knee push ups',
+      storageKey: 'knee_pushup_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 100 },
+        { level: 2, goal: 200 },
+        { level: 3, goal: 500 },
+        { level: 4, goal: 1000 },
+        { level: 5, goal: 2000 },
+      ],
+      alt: 'Knee Push-Ups Exercise'
+    }
+  }), []);
+
+  // Cardio Achievement Configurations
+  const CARDIO_ACHIEVEMENT_CONFIGS = useMemo(() => ({
+    'jumping_jacks': {
+      name: 'Jumping Jacks Achievement',
+      exerciseName: 'jumping jacks',
+      storageKey: 'jumping_jacks_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 1000 },
+        { level: 2, goal: 2500 },
+        { level: 3, goal: 6000 },
+        { level: 4, goal: 8500 },
+        { level: 5, goal: 12000 },
+      ],
+      alt: 'Jumping Jacks Exercise'
+    },
+    'burpees': {
+      name: 'Burpees Achievement',
+      exerciseName: 'burpees',
+      storageKey: 'burpees_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 38 },
+        { level: 2, goal: 75 },
+        { level: 3, goal: 188 },
+        { level: 4, goal: 375 },
+        { level: 5, goal: 750 },
+      ],
+      alt: 'Burpees Exercise'
+    },
+    'high_knees': {
+      name: 'High Knees Achievement',
+      exerciseName: 'high knees',
+      storageKey: 'high_knees_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 2000 },
+        { level: 2, goal: 5000 },
+        { level: 3, goal: 12000 },
+        { level: 4, goal: 17000 },
+        { level: 5, goal: 24000 },
+      ],
+      alt: 'High Knees Exercise'
+    }
+  }), []);
+
+  // Lower Body Achievement Configurations
+  const LOWER_BODY_ACHIEVEMENT_CONFIGS = useMemo(() => ({
+    'squats': {
+      name: 'Squats Achievement',
+      exerciseName: 'squats',
+      storageKey: 'squats_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 100 },  // Double push-ups: 50 * 2
+        { level: 2, goal: 200 },  // Double push-ups: 100 * 2
+        { level: 3, goal: 500 },  // Double push-ups: 250 * 2
+        { level: 4, goal: 1000 }, // Double push-ups: 500 * 2
+        { level: 5, goal: 2000 }, // Double push-ups: 1000 * 2
+      ],
+      alt: 'Squats Exercise'
+    },
+    'lunges': {
+      name: 'Lunges Achievement',
+      exerciseName: 'lunges',
+      storageKey: 'lunges_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 200 },  // Double squats: 100 * 2
+        { level: 2, goal: 400 },  // Double squats: 200 * 2
+        { level: 3, goal: 1000 }, // Double squats: 500 * 2
+        { level: 4, goal: 2000 }, // Double squats: 1000 * 2
+        { level: 5, goal: 4000 }, // Double squats: 2000 * 2
+      ],
+      alt: 'Lunges Exercise'
+    },
+    'wall_sit': {
+      name: 'Wall Sit Achievement',
+      exerciseName: 'wall sit',
+      storageKey: 'wall_sit_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 20 },   // 20 minutes
+        { level: 2, goal: 50 },   // 50 minutes
+        { level: 3, goal: 90 },   // 1.5 hours = 90 minutes
+        { level: 4, goal: 120 },  // 2 hours = 120 minutes
+        { level: 5, goal: 180 },  // 3 hours = 180 minutes
+      ],
+      alt: 'Wall Sit Exercise',
+      unit: 'minutes' // Special unit for wall sits
+    }
+  }), []);
+
+  const PLANK_CORE_ACHIEVEMENT_CONFIGS = useMemo(() => ({
+    'knee_plank': {
+      name: 'Knee Plank Achievement',
+      exerciseName: 'knee plank',
+      storageKey: 'knee_plank_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 20 },   // Same as wall sit: 20 minutes
+        { level: 2, goal: 50 },   // Same as wall sit: 50 minutes
+        { level: 3, goal: 90 },   // Same as wall sit: 90 minutes
+        { level: 4, goal: 120 },  // Same as wall sit: 120 minutes
+        { level: 5, goal: 180 },  // Same as wall sit: 180 minutes
+      ],
+      alt: 'Knee Plank Exercise',
+      unit: 'minutes'
+    },
+    'plank': {
+      name: 'Plank Achievement',
+      exerciseName: 'plank',
+      storageKey: 'plank_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 10 },   // Half of knee plank: 20 / 2
+        { level: 2, goal: 25 },   // Half of knee plank: 50 / 2
+        { level: 3, goal: 45 },   // Half of knee plank: 90 / 2
+        { level: 4, goal: 60 },   // Half of knee plank: 120 / 2
+        { level: 5, goal: 90 },   // Half of knee plank: 180 / 2
+      ],
+      alt: 'Plank Exercise',
+      unit: 'minutes'
+    },
+    'side_plank': {
+      name: 'Side Plank Achievement',
+      exerciseName: 'side plank',
+      storageKey: 'side_plank_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 10 },   // Same as plank: 10 minutes
+        { level: 2, goal: 25 },   // Same as plank: 25 minutes
+        { level: 3, goal: 45 },   // Same as plank: 45 minutes
+        { level: 4, goal: 60 },   // Same as plank: 60 minutes
+        { level: 5, goal: 90 },   // Same as plank: 90 minutes
+      ],
+      alt: 'Side Plank Exercise',
+      unit: 'minutes'
+    },
+    'reverse_plank': {
+      name: 'Reverse Plank Achievement',
+      exerciseName: 'reverse plank',
+      storageKey: 'reverse_plank_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 5 },    // Half of plank: 10 / 2
+        { level: 2, goal: 12 },   // Half of plank: 25 / 2 (rounded down)
+        { level: 3, goal: 22 },   // Half of plank: 45 / 2 (rounded down)
+        { level: 4, goal: 30 },   // Half of plank: 60 / 2
+        { level: 5, goal: 45 },   // Half of plank: 90 / 2
+      ],
+      alt: 'Reverse Plank Exercise',
+      unit: 'minutes'
+    },
+    'sit_ups': {
+      name: 'Sit-ups Achievement',
+      exerciseName: 'sit-ups',
+      storageKey: 'sit_ups_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 25 },   // Same as push-ups: 25 reps
+        { level: 2, goal: 50 },   // Same as push-ups: 50 reps
+        { level: 3, goal: 125 },  // Same as push-ups: 125 reps
+        { level: 4, goal: 250 },  // Same as push-ups: 250 reps
+        { level: 5, goal: 500 },  // Same as push-ups: 500 reps
+      ],
+      alt: 'Sit-ups Exercise'
+    },
+    'straight_arm_plank': {
+      name: 'Straight Arm Plank Achievement',
+      exerciseName: 'straight arm plank',
+      storageKey: 'straight_arm_plank_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 10 },   // Same as plank: 10 minutes
+        { level: 2, goal: 25 },   // Same as plank: 25 minutes
+        { level: 3, goal: 45 },   // Same as plank: 45 minutes
+        { level: 4, goal: 60 },   // Same as plank: 60 minutes
+        { level: 5, goal: 90 },   // Same as plank: 90 minutes
+      ],
+      alt: 'Straight Arm Plank Exercise',
+      unit: 'minutes'
+    },
+    'straight_arm_reverse_plank': {
+      name: 'Straight Arm Reverse Plank Achievement',
+      exerciseName: 'straight arm reverse plank',
+      storageKey: 'straight_arm_reverse_plank_achievement_progress_v2',
+      levels: [
+        { level: 1, goal: 3 },    // 30% less than reverse plank: 5 * 0.7 = 3.5 (rounded down)
+        { level: 2, goal: 8 },    // 30% less than reverse plank: 12 * 0.7 = 8.4 (rounded down)
+        { level: 3, goal: 15 },   // 30% less than reverse plank: 22 * 0.7 = 15.4 (rounded down)
+        { level: 4, goal: 21 },   // 30% less than reverse plank: 30 * 0.7 = 21
+        { level: 5, goal: 31 },   // 30% less than reverse plank: 45 * 0.7 = 31.5 (rounded down)
+      ],
+      alt: 'Straight Arm Reverse Plank Exercise',
+      unit: 'minutes'
+    }
+  }), []);
+
+  // Accordion state management
+  const [expandedAccordions, setExpandedAccordions] = useState({
+    pushups: false,
+    wide_pushups: false,
+    narrow_pushups: false,
+    diamond_pushups: false,
+    knee_pushups: false,
+    jumping_jacks: false,
+    burpees: false,
+    high_knees: false,
+    squats: false,
+    lunges: false,
+    wall_sit: false,
+    knee_plank: false,
+    plank: false,
+    side_plank: false,
+    reverse_plank: false,
+    sit_ups: false,
+    straight_arm_plank: false,
+    straight_arm_reverse_plank: false
+  });
+
+  const toggleAccordion = useCallback((key) => {
+    setExpandedAccordions(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = user?.email ? await getOrCreateUserByEmail(user.email, user.name) : null;
+        if (u) {
+          const list = await db.achievements.where({ userId: u.id }).toArray();
+          setDynamic(list);
+        }
+      } catch {}
+    })();
+  }, [user?.email]);
+
+  const achievements = [
+    // Only dynamic DB-based achievements for the current user
+    ...dynamic.map((a, idx) => ({
+      id: 100 + idx,
+      title: a.title,
+      description: a.code,
+      icon: a.level === 'gold' ? 'Trophy' : a.level === 'silver' ? 'Award' : 'Star',
+      earned: Boolean(a.earnedAt || a.progress >= (a.target || 1)),
+      color: a.level === 'gold' ? 'bg-warning' : a.level === 'silver' ? 'bg-accent' : 'bg-success',
+      progress: Math.round(((a.progress || 0) / (a.target || 1)) * 100)
+    }))
+  ];
+
+  const workoutStreaks = [
+    { type: "Current Streak", value: user?.currentStreak || 0, unit: "days", icon: "Flame", color: "text-accent" },
+    { type: "Longest Streak", value: user?.longestStreak || 0, unit: "days", icon: "Trophy", color: "text-warning" },
+    { type: "This Week", value: user?.thisWeekWorkouts || 0, unit: "workouts", icon: "Calendar", color: "text-primary" },
+    { type: "This Month", value: user?.thisMonthWorkouts || 0, unit: "workouts", icon: "BarChart3", color: "text-success" }
+  ];
+
+
+  // Memoized Achievement Badge Component to prevent unnecessary re-renders
+  const AchievementBadge = React.memo(({ achievement }) => (
+    <div className={`bg-card border border-border rounded-lg p-4 ${achievement?.earned ? 'shadow-elevation-2' : 'opacity-75'}`}>
+      <div className="flex items-start space-x-3">
+        <div className={`w-12 h-12 ${achievement?.color} rounded-full flex items-center justify-center ${achievement?.earned ? '' : 'opacity-50'}`}>
+          <Icon name={achievement?.icon} size={20} color="white" />
+        </div>
+        
+        <div className="flex-1">
+          <div className="flex items-center space-x-2 mb-1">
+            <h4 className="font-semibold text-card-foreground">{achievement?.title}</h4>
+            {achievement?.earned && (
+              <Icon name="CheckCircle" size={16} className="text-success" />
+            )}
+          </div>
+          
+          <p className="text-sm text-muted-foreground mb-3">{achievement?.description}</p>
+          
+          {achievement?.earned ? (
+            <p className="text-xs text-success font-medium">
+              Earned on {new Date(achievement.earnedDate)?.toLocaleDateString()}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {achievement?.current} / {achievement?.target}
+                </span>
+                <span className="font-medium text-card-foreground">
+                  {achievement?.progress}%
+                </span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full ${achievement?.color}`}
+                  style={{ width: `${achievement?.progress}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ));
+
+  // Generic Accordion Achievement Component
+  const AccordionAchievement = React.memo(({ 
+    achievementKey, 
+    config, 
+    state, 
+    setState, 
+    weeklyCount, 
+    currentLevel, 
+    started, 
+    allCompleted,
+    renderLevelCard,
+    renderTrophy
+  }) => {
+    const isExpanded = expandedAccordions[achievementKey];
+    const progress = Math.min(currentLevel, config.levels.length);
+    
+    return (
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        {/* Accordion Header */}
+        <button
+          className="w-full p-4 text-left flex items-center justify-between hover:bg-muted/50 transition-colors"
+          onClick={() => toggleAccordion(achievementKey)}
+        >
+          <div className="flex items-center space-x-3">
+            <div>
+              <h4 className="font-semibold text-card-foreground">{config.name}</h4>
+              <p className="text-sm text-muted-foreground">
+                Progress: {progress}/{config.levels.length} levels
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            {/* Current level display */}
+            <div className="text-right">
+              <p className="text-lg font-bold text-card-foreground">Level {Math.min(currentLevel + 1, config.levels.length)}</p>
+              <p className="text-xs text-muted-foreground">{allCompleted ? 'Complete!' : started ? 'In Progress' : 'Not Started'}</p>
+            </div>
+            <Icon 
+              name={isExpanded ? "ChevronUp" : "ChevronDown"} 
+              size={20} 
+              className="text-muted-foreground transition-transform"
+            />
+          </div>
+        </button>
+
+        {/* Accordion Content */}
+        {isExpanded && (
+          <div className="border-t border-border p-4">
+            {!started ? (
+              <div className="text-center py-4">
+                <button
+                  className="btn btn-sm font-semibold rounded-full px-6 py-2 shadow-md transition-colors text-white"
+                  style={{ backgroundColor: '#fb923c' }}
+                  onClick={() => setState(s => ({ ...s, started: true }))}
+                >
+                  Start Achievement
+                </button>
+              </div>
+            ) : allCompleted ? (
+              renderTrophy()
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {config.levels.map(renderLevelCard)}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  });
+
+  // --- Push-Up Achievement Flow ---
+  // Shared logic for all push-up types
+  const PUSHUP_LEVELS = [
+    { level: 1, goal: 50 },
+    { level: 2, goal: 100 },
+    { level: 3, goal: 250 },
+    { level: 4, goal: 500 },
+    { level: 5, goal: 1000 },
+  ];
+  const KNEE_PUSHUP_LEVELS = [
+    { level: 1, goal: 100 },
+    { level: 2, goal: 200 },
+    { level: 3, goal: 500 },
+    { level: 4, goal: 1000 },
+    { level: 5, goal: 2000 },
+  ];
+  const DIAMOND_PUSHUP_LEVELS = [
+    { level: 1, goal: 38 },  // 25% less than 50
+    { level: 2, goal: 75 },  // 25% less than 100
+    { level: 3, goal: 188 }, // 25% less than 250
+    { level: 4, goal: 375 }, // 25% less than 500
+    { level: 5, goal: 750 }, // 25% less than 1000
+  ];
+  // --- Knee Push-Ups ---
+  const KNEE_STORAGE_KEY = 'knee_pushup_achievement_progress_v2';
+  const [kneePushupState, setKneePushupState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(KNEE_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showKneePushupCard, setShowKneePushupCard] = useState(true);
+  const [weeklyKneePushups, setWeeklyKneePushups] = useState(0);
+
+  useEffect(() => { localStorage.setItem(KNEE_STORAGE_KEY, JSON.stringify(kneePushupState)); }, [kneePushupState]);
+
+  // Memoize week calculation function to avoid recreating on each render
+  const getWeekNumber = useCallback((d) => {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+  }, []);
+
+  // Memoize current week key to prevent unnecessary recalculations
+  const currentWeekKey = useMemo(() => {
+    const now = new Date();
+    return Number(`${now.getFullYear()}${String(getWeekNumber(now)).padStart(2, '0')}`);
+  }, [getWeekNumber]);
+
+  // Get this week's knee push-up count from stats
+  useEffect(() => {
+    (async () => {
+      if (!user?.email) return;
+      const u = await getOrCreateUserByEmail(user.email, user.name);
+      // Use memoized week key
+      const sessions = await db.sessions.where({ userId: u.id }).toArray();
+      let count = 0;
+      for (const s of sessions) {
+        const d = new Date(s.dateISO);
+        const wk = Number(`${d.getFullYear()}${String(getWeekNumber(d)).padStart(2, '0')}`);
+        if (wk === currentWeekKey) {
+          for (const item of s.items) {
+            if (item.name && item.name.toLowerCase() === 'knee push ups') {
+              count += Number(item.reps || 0) * Number(item.sets || 1);
+            }
+          }
+        }
+      }
+      setWeeklyKneePushups(count);
+    })();
+  }, [user?.email, kneePushupState, getWeekNumber, currentWeekKey]);
+
+  // Progress logic (knee)
+  const kneeCurrentLevel = kneePushupState.currentLevel;
+  const kneeStarted = kneePushupState.started;
+  const kneeCompleted = kneePushupState.completed;
+  const kneeNextLevel = KNEE_PUSHUP_LEVELS[kneeCurrentLevel] || null;
+  const kneeAllCompleted = kneeCurrentLevel >= KNEE_PUSHUP_LEVELS.length;
+
+  // Auto-advance level if completed (knee)
+  useEffect(() => {
+    if (!kneeStarted || kneeAllCompleted) return;
+    if (kneeNextLevel && weeklyKneePushups >= kneeNextLevel.goal) {
+      if (kneeCurrentLevel + 1 === KNEE_PUSHUP_LEVELS.length) {
+        setKneePushupState(s => ({ ...s, currentLevel: s.currentLevel + 1, completed: true }));
+      } else {
+        setKneePushupState(s => ({ ...s, currentLevel: s.currentLevel + 1 }));
+      }
+    }
+  }, [weeklyKneePushups, kneeStarted, kneeCurrentLevel, kneeNextLevel, kneeAllCompleted]);
+
+  // Handlers (knee)
+  const handleKneeStart = () => setKneePushupState(s => ({ ...s, started: true }));
+  const handleKneeClose = () => setShowKneePushupCard(false);
+  const handleKneeReopen = () => setShowKneePushupCard(true);
+
+  // UI for each level (knee)
+  const renderKneeLevelCard = (levelObj, idx) => {
+    let status = 'Locked';
+    if (kneeCurrentLevel > idx) status = 'Completed';
+    else if (kneeCurrentLevel === idx && kneeStarted && !kneeAllCompleted) status = 'In Progress';
+    const progress = Math.min(100, Math.round((weeklyKneePushups / levelObj.goal) * 100));
+    return (
+      <div key={levelObj.level} className={`bg-card border border-border rounded-lg p-4 flex flex-col items-center ${status === 'Completed' ? 'shadow-elevation-2' : status === 'Locked' ? 'opacity-60' : ''}`}>
+        <div className="flex items-center space-x-2 mb-2">
+          <span className="font-bold text-lg">Level {levelObj.level}</span>
+          {status === 'Completed' && <Icon name="CheckCircle" size={18} className="text-success animate-bounce" />}
+          {status === 'In Progress' && <Icon name="Loader" size={18} className="text-primary animate-spin" />}
+          {status === 'Locked' && <Icon name="Lock" size={18} className="text-muted-foreground" />}
+        </div>
+        <p className="text-sm text-card-foreground mb-2">Complete <b>{levelObj.goal} knee push-ups</b> in one week</p>
+        <div className="w-full mb-2">
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">{Math.min(weeklyKneePushups, levelObj.goal)} / {levelObj.goal}</span>
+            <span className="font-medium text-card-foreground">{progress}%</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-2">
+            <div className={`h-2 rounded-full ${status === 'Completed' ? 'bg-success' : status === 'In Progress' ? 'bg-primary' : 'bg-muted-foreground'}`} style={{ width: `${progress}%` }}></div>
+          </div>
+        </div>
+        <span className={`text-xs font-semibold ${status === 'Completed' ? 'text-success' : status === 'In Progress' ? 'text-primary' : 'text-muted-foreground'}`}>{status}</span>
+      </div>
+    );
+  };
+
+  // Trophy for full completion (knee)
+  const renderKneeTrophy = () => (
+    <div className="flex flex-col items-center justify-center mt-4">
+      <span className="relative inline-block">
+        <Icon name="Trophy" size={48} className="text-warning animate-pulse drop-shadow-lg" />
+        <span className="absolute -top-2 -right-2 animate-ping inline-flex h-4 w-4 rounded-full bg-warning opacity-75"></span>
+      </span>
+      <p className="mt-2 text-lg font-bold text-warning">Knee Push-Up Achievement Complete!</p>
+      <p className="text-sm text-muted-foreground">All 5 levels completed <span role="img" aria-label="trophy">🏆</span></p>
+    </div>
+  );
+
+  // Main card (knee)
+  const KneePushUpAchievement = React.memo(() => {
+    if (!showKneePushupCard) {
+      // Collapsed state: show only the header, gif, and a button to reopen
+      return (
+        <div className="bg-card border border-border rounded-lg p-4 flex flex-col items-center">
+          <p className="text-lg font-semibold text-card-foreground mb-1">Knee Push-Up Achievement</p>
+          <div className="w-full flex justify-center mt-4">
+            <button
+              className="btn btn-sm font-semibold rounded-full px-6 py-2 shadow-md transition-colors text-white"
+              style={{ backgroundColor: '#fb923c' }}
+              onClick={handleKneeReopen}
+            >
+              Start
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="bg-card border border-border rounded-lg p-4 flex flex-col items-center relative">
+        <p className="text-lg font-semibold text-card-foreground mb-1">Knee Push-Up Achievement</p>
+        <p className="text-sm text-muted-foreground mb-2">Progress: {Math.min(kneeCurrentLevel, 5)}/5 levels</p>
+        {!kneeStarted ? (
+          <button
+            className="btn btn-sm font-semibold rounded-full px-6 py-2 shadow-md transition-colors text-white mb-2"
+            style={{ backgroundColor: '#fb923c' }}
+            onClick={handleKneeStart}
+          >
+            Start Achievement
+          </button>
+        ) : null}
+        {kneeStarted && !kneeAllCompleted && (
+          <>
+            <button
+              className="btn btn-xs font-semibold rounded-full px-3 py-1 shadow-md transition-colors text-white absolute top-2 right-2"
+              style={{ backgroundColor: '#fb923c' }}
+              onClick={handleKneeClose}
+            >
+              Close
+            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full mt-2">
+              {KNEE_PUSHUP_LEVELS.map(renderKneeLevelCard)}
+            </div>
+          </>
+        )}
+        {kneeAllCompleted && renderKneeTrophy()}
+      </div>
+    );
+  });
+
+  // --- Normal Push-Ups ---
+  const STORAGE_KEY = 'pushup_achievement_progress_v2';
+  const [pushupState, setPushupState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showPushupCard, setShowPushupCard] = useState(true);
+  const [weeklyPushups, setWeeklyPushups] = useState(0);
+
+  // --- Wide Push-Ups ---
+  const WIDE_STORAGE_KEY = 'wide_pushup_achievement_progress_v2';
+  const [widePushupState, setWidePushupState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(WIDE_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showWidePushupCard, setShowWidePushupCard] = useState(true);
+  const [weeklyWidePushups, setWeeklyWidePushups] = useState(0);
+
+  // --- Narrow Push-Ups ---
+  const NARROW_STORAGE_KEY = 'narrow_pushup_achievement_progress_v2';
+  const [narrowPushupState, setNarrowPushupState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(NARROW_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showNarrowPushupCard, setShowNarrowPushupCard] = useState(true);
+  const [weeklyNarrowPushups, setWeeklyNarrowPushups] = useState(0);
+
+  // --- Diamond Push-Ups ---
+  const DIAMOND_STORAGE_KEY = 'diamond_pushup_achievement_progress_v2';
+  const [diamondPushupState, setDiamondPushupState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(DIAMOND_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showDiamondPushupCard, setShowDiamondPushupCard] = useState(true);
+  const [weeklyDiamondPushups, setWeeklyDiamondPushups] = useState(0);
+
+  // --- Jumping Jacks ---
+  const JUMPING_JACKS_STORAGE_KEY = 'jumping_jacks_achievement_progress_v2';
+  const [jumpingJacksState, setJumpingJacksState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(JUMPING_JACKS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showJumpingJacksCard, setShowJumpingJacksCard] = useState(true);
+  const [weeklyJumpingJacks, setWeeklyJumpingJacks] = useState(0);
+
+  // --- Burpees ---
+  const BURPEES_STORAGE_KEY = 'burpees_achievement_progress_v2';
+  const [burpeesState, setBurpeesState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(BURPEES_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showBurpeesCard, setShowBurpeesCard] = useState(true);
+  const [weeklyBurpees, setWeeklyBurpees] = useState(0);
+
+  // --- High Knees ---
+  const HIGH_KNEES_STORAGE_KEY = 'high_knees_achievement_progress_v2';
+  const [highKneesState, setHighKneesState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(HIGH_KNEES_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showHighKneesCard, setShowHighKneesCard] = useState(true);
+  const [weeklyHighKnees, setWeeklyHighKnees] = useState(0);
+
+  // --- Squats ---
+  const SQUATS_STORAGE_KEY = 'squats_achievement_progress_v2';
+  const [squatsState, setSquatsState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SQUATS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showSquatsCard, setShowSquatsCard] = useState(true);
+  const [weeklySquats, setWeeklySquats] = useState(0);
+
+  // --- Lunges ---
+  const LUNGES_STORAGE_KEY = 'lunges_achievement_progress_v2';
+  const [lungesState, setLungesState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(LUNGES_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showLungesCard, setShowLungesCard] = useState(true);
+  const [weeklyLunges, setWeeklyLunges] = useState(0);
+
+  // --- Wall Sit ---
+  const WALL_SIT_STORAGE_KEY = 'wall_sit_achievement_progress_v2';
+  const [wallSitState, setWallSitState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(WALL_SIT_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showWallSitCard, setShowWallSitCard] = useState(true);
+  const [weeklyWallSit, setWeeklyWallSit] = useState(0);
+
+  // --- Knee Plank ---
+  const KNEE_PLANK_STORAGE_KEY = 'knee_plank_achievement_progress_v2';
+  const [kneePlankState, setKneePlankState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(KNEE_PLANK_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showKneePlankCard, setShowKneePlankCard] = useState(true);
+  const [weeklyKneePlank, setWeeklyKneePlank] = useState(0);
+
+  // --- Plank ---
+  const PLANK_STORAGE_KEY = 'plank_achievement_progress_v2';
+  const [plankState, setPlankState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(PLANK_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showPlankCard, setShowPlankCard] = useState(true);
+  const [weeklyPlank, setWeeklyPlank] = useState(0);
+
+  // --- Side Plank ---
+  const SIDE_PLANK_STORAGE_KEY = 'side_plank_achievement_progress_v2';
+  const [sidePlankState, setSidePlankState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SIDE_PLANK_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showSidePlankCard, setShowSidePlankCard] = useState(true);
+  const [weeklySidePlank, setWeeklySidePlank] = useState(0);
+
+  // --- Reverse Plank ---
+  const REVERSE_PLANK_STORAGE_KEY = 'reverse_plank_achievement_progress_v2';
+  const [reversePlankState, setReversePlankState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(REVERSE_PLANK_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0 };
+    } catch {
+      return { started: false, completed: false, currentLevel: 0 };
+    }
+  });
+  const [showReversePlankCard, setShowReversePlankCard] = useState(true);
+  const [weeklyReversePlank, setWeeklyReversePlank] = useState(0);
+
+  // --- Sit-ups ---
+  const SIT_UPS_STORAGE_KEY = 'sit_ups_achievement_progress_v2';
+  const [sitUpsState, setSitUpsState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SIT_UPS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { started: false, completed: false, currentLevel: 0

@@ -1,0 +1,165 @@
+/* Premium Button Animations */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes premium-shimmer {
+  0% { background-position: -100%; }
+  100% { background-position: 200%; }
+}
+
+@keyframes premium-glow {
+  0% { 
+    box-shadow: 0 0 20px rgba(255, 138, 0, 0.3);
+    filter: drop-shadow(0 0 8px rgba(255, 138, 0, 0.4));
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255, 138, 0, 0.6);
+    filter: drop-shadow(0 0 16px rgba(255, 138, 0, 0.7));
+  }
+  100% { 
+    box-shadow: 0 0 20px rgba(255, 138, 0, 0.3);
+    filter: drop-shadow(0 0 8px rgba(255, 138, 0, 0.4));
+  }
+}
+
+@keyframes premium-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+/* Premium Button Classes */
+.premium-button {
+  background: linear-gradient(45deg, #FF8A00, #FFB347, #E67B00, #FF8A00);
+  background-size: 300% 300%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+.premium-button:hover {
+  animation: gradient-shift 1.5s ease infinite, premium-glow 2s ease infinite;
+}
+
+.premium-shimmer {
+  background: linear-gradient(90deg, #fff 25%, #ffe29e 50%, #ff9800 75%, #fff 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: premium-shimmer 2.2s linear infinite;
+}
+
+.premium-glow {
+  animation: premium-glow 1.8s infinite alternate;
+}
+
+.premium-pulse {
+  animation: premium-pulse 2s infinite;
+}
+
+/* --- Food Scanner Loading Animations --- */
+@keyframes atos-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes atos-lines-sweep {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes atos-radar-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
+}
+
+@keyframes atos-shimmer-bar {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Overlay backdrop */
+.atos-scan-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+/* Moving scan lines */
+.atos-scan-lines {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.0)),
+    repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 2px, transparent 2px, transparent 6px);
+  transform: translateY(-100%);
+  animation: atos-lines-sweep 1.8s linear infinite;
+  pointer-events: none;
+}
+
+/* Subtle radar pulse centered */
+.atos-radar-pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220px;
+  height: 220px;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  background: radial-gradient(circle at center, rgba(255,165,0,0.25) 0%, rgba(255,165,0,0.15) 45%, rgba(255,165,0,0.08) 60%, transparent 70%);
+  animation: atos-radar-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Modern loader ring */
+.atos-loader-ring {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--color-primary) 0%, rgba(255,255,255,0.15) 60%, rgba(255,255,255,0.07) 100%);
+  -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%);
+  mask: radial-gradient(circle, transparent 60%, #000 61%);
+  animation: atos-rotate 1.2s linear infinite;
+  box-shadow: 0 0 10px rgba(255,165,0,0.35);
+}
+
+/* Shimmering progress bar */
+.atos-shimmer-bar {
+  width: 180px;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, var(--color-primary) 50%, rgba(255,255,255,0.1) 100%);
+  background-size: 200% 100%;
+  animation: atos-shimmer-bar 2s linear infinite;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+}
+
+/* Responsive Premium Button Styles */
+@media (max-width: 640px) {
+  .premium-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .premium-button {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .premium-button {
+    padding: 1.25rem 2.5rem;
+    font-size: 1.125rem;
+  }
+}
